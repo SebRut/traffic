@@ -1,8 +1,9 @@
 use github::*;
-use termion::style;
 
 const NO_REPOS_FOUND : &str = "\nNo Github repositories were found :(\n";
 const NO_TRAFFIC : &str = "\nLooks like your repos haven't had any traffic lately. Go spread the word and check back later!\n";
+const STYLE_BOLD : &str = "\x1B[1m";
+const STYLE_RESET : &str = "\x1B[0m";
 
 pub fn get_formatted_output(mut repo_details: Vec<RepoDetails>) -> String {
     if repo_details.is_empty() {
@@ -23,9 +24,9 @@ pub fn get_formatted_output(mut repo_details: Vec<RepoDetails>) -> String {
 
     output += "\n";
     output += &format!("{}{:<repo_name_width$}{:^unique_visits_width$}{:<}\n{:<repo_name_width$}{:^unique_visits_width$}\n{}\n",
-             style::Bold,
+             STYLE_BOLD,
              "Repository Name", "Unique Visits", "Trend", "", "(last 14 days)",
-             style::Reset,
+             STYLE_RESET,
              repo_name_width=repo_name_width, unique_visits_width=unique_visits_width
     );
     for repo in repo_details {
