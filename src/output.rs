@@ -23,10 +23,22 @@ pub fn get_formatted_output(mut repo_details: Vec<RepoDetails>) -> String {
     let mut output = String::new();
 
     output += "\n";
+
+    let set_style;
+    let clear_style;
+    if cfg!(target_os = "windows") {
+        // disable ansi escape sequences on Windows because they have limited support
+        set_style = "";
+        clear_style = "";
+    } else {
+        set_style = STYLE_BOLD;
+        clear_style = STYLE_RESET;
+    }
+    
     output += &format!("{}{:<repo_name_width$}{:^unique_visits_width$}{:<}\n{:<repo_name_width$}{:^unique_visits_width$}\n{}\n",
-             STYLE_BOLD,
+             set_style,
              "Repository Name", "Unique Visits", "Trend", "", "(last 14 days)",
-             STYLE_RESET,
+             clear_style,
              repo_name_width=repo_name_width, unique_visits_width=unique_visits_width
     );
     for repo in repo_details {
