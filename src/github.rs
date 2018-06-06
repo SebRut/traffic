@@ -15,6 +15,7 @@ pub struct Repository {
 pub struct RepoDetails {
     pub repository: Repository,
     pub views: ViewsForTwoWeeks,
+    pub clones: ClonesForTwoWeeks
 }
 
 pub fn get_all_traffic_data(username: &str, password: &str) -> Vec<RepoDetails> {
@@ -33,9 +34,10 @@ pub fn get_all_traffic_data(username: &str, password: &str) -> Vec<RepoDetails> 
         ).unwrap();
 
     let mut traffic_requests = vec![];
+    let mut clones_requests = vec![];
 
     for repo in &repos {
-       let request =  client
+       let request = client
             .get(&format!("https://api.github.com/repos/{}/traffic/views", repo.full_name))
             .basic_auth(username, Some(password.clone()))
             .send()
@@ -43,14 +45,26 @@ pub fn get_all_traffic_data(username: &str, password: &str) -> Vec<RepoDetails> 
                 res.json::<ViewsForTwoWeeks>()
             });
         traffic_requests.push(request);
+                    let clones_request = client
+                .get(&format!("https://api.github.com/repos/{}/traffic/clones", repo.full_name))
+                .basic_auth(username, Some(password.clone()))
+                .send()
+                .and_then(|mut res : Response| {
+                    res.json::<ClonesForTwoWeeks>()
+                });
+            clones_requests.push(clones_request);
     }
 
     let work = join_all(traffic_requests);
+    let clones_work = join_all(clones_requests);
 
     let mut repo_details : Vec<RepoDetails> = vec![];
 
-    for (views, repo) in core.run(work).unwrap().into_iter().zip(repos.into_iter()) {
-        repo_details.push(RepoDetails { repository: repo, views });
+    let all_views = core.run(work).unwrap();
+    let all_clones = core.run(clones_work).unwrap();
+
+    for (views, clones, repo) in all_views.into_iter().zip(all_clones.into_iter()).zip(repos.into_iter()).map(|((v,c),r)| (v,c,r)) {
+        repo_details.push(RepoDetails { repository: repo, views, clones });
     }
 
     repo_details

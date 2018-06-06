@@ -19,6 +19,8 @@ mod user;
 struct Opt {
     #[structopt(long = "logout")]
     logout: bool,
+    #[structopt(long = "show-clones")]
+    showclones: bool,
 }
 
 fn main(){
@@ -34,5 +36,5 @@ fn main(){
     let repo_details =
         github::get_all_traffic_data(&username, &password);
 
-    print!("{}", output::get_formatted_output(repo_details));
+    print!("{}", output::get_formatted_output(repo_details, cli_option.showclones));
 }

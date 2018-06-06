@@ -2,6 +2,26 @@ use chrono::prelude::*;
 use chrono::Duration;
 use std::fmt;
 
+#[derive(PartialEq, Debug)]
+pub struct Clones {
+    pub uniques: u32,
+    pub count: u32,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ClonesForDay {
+    pub timestamp: DateTime<Utc>,
+    pub count: u32,
+    pub uniques: u32,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ClonesForTwoWeeks {
+    pub uniques: u32,
+    pub count: u32,
+    pub clones: Vec<ClonesForDay>,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ViewsForTwoWeeks {
     pub uniques: u32,
@@ -56,6 +76,53 @@ impl fmt::Display for Trend {
     }
 }
 
+impl ClonesForTwoWeeks {
+    pub fn get_clones_from_past(&self, days_ago: i32) -> Clones {
+        let target_day = Utc::now().num_days_from_ce() - days_ago;
+        for day in &self.clones {
+            if day.timestamp.num_days_from_ce() == target_day {
+                return Clones { uniques: day.uniques, count: day.count }
+            }
+        }
+        // Github only returns the days which have views, so days which are not found had 0 views
+        Clones{ uniques: 0, count: 0 }
+    }
+
+    pub fn get_trend_uniques(&self) -> Option<Trend> {
+        let yesterday_count = self.get_clones_from_past(1);
+        let two_days_ago_count = self.get_clones_from_past(2);
+
+        if yesterday_count.uniques != two_days_ago_count.uniques {
+
+            let direction =
+                if yesterday_count.uniques > two_days_ago_count.uniques {
+                    Direction::UP
+                } else {
+                    Direction::DOWN
+                };
+
+            let max_trend_duration = 99; // just to provide an upper bound on this loop
+
+            for i in 3..=max_trend_duration {
+                let uniques_i = self.get_clones_from_past(i).uniques;
+                let uniques_i_minus = self.get_clones_from_past(i-1).uniques;
+
+
+                if (direction == Direction::UP && (uniques_i >= uniques_i_minus))
+                    ||
+                    (direction == Direction::DOWN && (uniques_i <= uniques_i_minus)) {
+                    return Some(Trend::new(direction, (i-2).into()))
+                }
+
+            }
+
+            Some(Trend::new(direction, (max_trend_duration-2).into()))
+
+        } else {return None}
+    }
+}
+
+
 impl ViewsForTwoWeeks {
     pub fn get_views_from_past(&self, days_ago: i32) -> Views {
         let target_day = Utc::now().num_days_from_ce() - days_ago;
@@ -102,6 +169,34 @@ impl ViewsForTwoWeeks {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn get_clones_from_past_empty_history() {
+        let clones = ClonesForTwoWeeks { uniques: 0, count: 0, clones: vec![] };
+        assert_eq!(Clones{ uniques: 0, count: 0 }, clones.get_clones_from_past(0));
+    }
+
+    #[test]
+    fn get_clones_from_past_missing_day() {
+        let now = Utc::now();
+        let today = Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
+        let yesterday = today - Duration::days(1);
+
+        let day = ClonesForDay { timestamp: yesterday, uniques: 2, count: 7 };
+        let clones = ClonesForTwoWeeks { uniques: 2, count: 7, clones: vec![day] };
+        assert_eq!(Clones{ uniques: 0, count: 0 }, clones.get_clones_from_past(7));
+    }
+
+    #[test]
+    fn get_clones_from_past() {
+        let now = Utc::now();
+        let today = Utc.ymd(now.year(), now.month(), now.day()).and_hms(0, 0, 0);
+        let yesterday = today - Duration::days(1);
+
+        let day = ClonesForDay { timestamp: yesterday, uniques: 2, count: 7 };
+        let clones = ClonesForTwoWeeks { uniques: 2, count: 7, clones: vec![day] };
+        assert_eq!(Clones{ uniques: 2, count: 7 }, clones.get_clones_from_past(1));
+    }
 
     #[test]
     fn get_views_from_past_empty_history() {
