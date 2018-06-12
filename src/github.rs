@@ -14,8 +14,8 @@ pub struct Repository {
 #[derive(Debug)]
 pub struct RepoDetails {
     pub repository: Repository,
-    pub views: ViewsForTwoWeeks,
-    pub clones: ClonesForTwoWeeks
+    pub views: CountsForTwoWeeks,
+    pub clones: CountsForTwoWeeks
 }
 
 pub fn get_all_traffic_data(username: &str, password: &str) -> Vec<RepoDetails> {
@@ -64,6 +64,8 @@ pub fn get_all_traffic_data(username: &str, password: &str) -> Vec<RepoDetails> 
     let all_clones = core.run(clones_work).unwrap();
 
     for (views, clones, repo) in all_views.into_iter().zip(all_clones.into_iter()).zip(repos.into_iter()).map(|((v,c),r)| (v,c,r)) {
+        let views = CountsForTwoWeeks::from(views);
+        let clones = CountsForTwoWeeks::from(clones);
         repo_details.push(RepoDetails { repository: repo, views, clones });
     }
 

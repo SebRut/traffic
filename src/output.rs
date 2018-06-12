@@ -39,7 +39,7 @@ pub fn get_formatted_output(mut repo_details: Vec<RepoDetails>, show_clones: boo
     if show_clones {
 output += &format!("{}{:<repo_name_width$}{:^unique_visits_width$}{:^unique_clones_width$}{:<}\n{:<repo_name_width$}{:^unique_visits_width$}{:^unique_clones_width$}\n{}\n",
              set_style,
-             "Repository Name", "Unique Visits", "Unique Clones", "Trend", "", "(last 14 days)", "(last 14 days)",
+             "Repository Name", "Unique Visits", "Unique Counts", "Trend", "", "(last 14 days)", "(last 14 days)",
              clear_style,
              repo_name_width=repo_name_width,
              unique_visits_width=unique_visits_width,
@@ -98,8 +98,8 @@ mod tests {
     #[test]
     fn handles_all_repos_have_zero_views() {
         let repository = Repository {name: String::from("test-project"), full_name: String::from("user/test-project")};
-        let views = ViewsForTwoWeeks { uniques: 0, count: 0, views: vec![] };
-        let clones = ClonesForTwoWeeks { uniques: 0, count: 0, clones: vec![] };
+        let views = CountsForTwoWeeks::from(ViewsForTwoWeeks { uniques: 0, count: 0, views: vec![] });
+        let clones = CountsForTwoWeeks::from(ClonesForTwoWeeks { uniques: 0, count: 0, clones: vec![] });
         let repo_details : Vec<RepoDetails> = vec![RepoDetails { repository, views, clones }];
         let result = get_formatted_output(repo_details, false);
 
@@ -109,8 +109,8 @@ mod tests {
     #[test]
     fn hides_warnings_if_repos_exist_with_traffic() {
         let repository = Repository {name: String::from("test-project"), full_name: String::from("user/test-project")};
-        let views = ViewsForTwoWeeks { uniques: 1, count: 1, views: vec![] };
-        let clones = ClonesForTwoWeeks { uniques: 0, count: 0, clones: vec![] };
+        let views = CountsForTwoWeeks::from(ViewsForTwoWeeks { uniques: 1, count: 1, views: vec![] });
+        let clones = CountsForTwoWeeks::from(ClonesForTwoWeeks { uniques: 0, count: 0, clones: vec![] });
         let repo_details : Vec<RepoDetails> = vec![RepoDetails { repository, views, clones }];
         let result = get_formatted_output(repo_details, false);
 
